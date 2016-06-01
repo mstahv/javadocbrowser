@@ -141,8 +141,6 @@ public class JavadocBrowser extends HttpServlet {
             File cachefile) throws FileNotFoundException {
         String artifactName = artifactId + "-" + version;
         if (!cachefile.exists()) {
-            cachefile.getParentFile().mkdirs();
-
             for (String repo : repos) {
                 String repopath = "/" + groupId.replace(".", "/") + "/"
                         + artifactId + "/" + version + "/";
@@ -150,6 +148,7 @@ public class JavadocBrowser extends HttpServlet {
                     URL url = new URL(repo + repopath + artifactName
                             + "-javadoc.jar");
                     InputStream openStream = url.openStream();
+                    cachefile.getParentFile().mkdirs();
                     IOUtils.copy(openStream, new FileOutputStream(cachefile));
                     openStream.close();
                     break;
