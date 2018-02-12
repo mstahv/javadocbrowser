@@ -25,6 +25,7 @@ public class JavadocBrowser extends HttpServlet {
      */
     private static final String[] repos = {
             "http://maven.vaadin.com/vaadin-addons",
+            "http://maven.vaadin.com/vaadin-prereleases",
             "http://repo1.maven.org/maven2" };
 
     public static final File DOC_CACHE = new File(
