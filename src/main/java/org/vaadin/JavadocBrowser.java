@@ -1,6 +1,12 @@
 package org.vaadin;
 
-import static javax.activation.FileTypeMap.getDefaultFileTypeMap;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletOutputStream;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.apache.commons.io.IOUtils;
+import org.apache.tika.Tika;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -10,26 +16,17 @@ import java.io.InputStream;
 import java.net.URL;
 import java.net.URLConnection;
 
-import javax.servlet.ServletException;
-import javax.servlet.ServletOutputStream;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import org.apache.commons.io.IOUtils;
-
 public class JavadocBrowser extends HttpServlet {
 
     /**
      * Maven2 repositories from which javadocs are searched
      */
     private static final String[] repos = {
-            "http://maven.vaadin.com/vaadin-addons",
-            "http://maven.vaadin.com/vaadin-prereleases",
-            "http://repo1.maven.org/maven2" };
+            "https://repo1.maven.org/maven2" };
 
     public static final File DOC_CACHE = new File(
             System.getProperty("user.home") + "/jdoccache");
+    public static final Tika TIKA = new Tika();
 
     @Override
     public void init() throws ServletException {
@@ -39,7 +36,7 @@ public class JavadocBrowser extends HttpServlet {
 
     @Override
     protected void service(HttpServletRequest request,
-            HttpServletResponse response) throws ServletException, IOException {
+                           HttpServletResponse response) throws ServletException, IOException {
         try {
             String[] parts = request.getPathInfo().split("\\/", 5);
             String groupId = parts[1];
@@ -184,8 +181,7 @@ public class JavadocBrowser extends HttpServlet {
             } else if (fileExtension.equals(".css")) {
                 mimeType = "text/css";
             } else {
-                mimeType = getDefaultFileTypeMap().getContentType(path);
-                System.out.println(path);
+                mimeType = TIKA.detect(path);
             }
         }
         response.setContentType(mimeType);
