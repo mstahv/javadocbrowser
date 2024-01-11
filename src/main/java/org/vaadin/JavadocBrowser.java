@@ -22,7 +22,9 @@ public class JavadocBrowser extends HttpServlet {
      * Maven2 repositories from which javadocs are searched
      */
     private static final String[] repos = {
-            "https://repo1.maven.org/maven2" };
+            "https://maven.vaadin.com/vaadin-addons",
+            "https://repo1.maven.org/maven2"
+    };
 
     public static final File DOC_CACHE = new File(
             System.getProperty("user.home") + "/jdoccache");
