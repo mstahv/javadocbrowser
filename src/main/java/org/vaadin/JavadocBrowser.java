@@ -1,5 +1,7 @@
 package org.vaadin;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.http.HttpServlet;
@@ -15,6 +17,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.net.URLConnection;
+import java.nio.charset.Charset;
+import java.time.Duration;
+import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class JavadocBrowser extends HttpServlet {
 
@@ -22,8 +29,8 @@ public class JavadocBrowser extends HttpServlet {
      * Maven2 repositories from which javadocs are searched
      */
     private static final String[] repos = {
-            "https://maven.vaadin.com/vaadin-addons",
-            "https://repo1.maven.org/maven2"
+            "https://repo1.maven.org/maven2",
+            "https://maven.vaadin.com/vaadin-addons"
     };
 
     public static final File DOC_CACHE = new File(
@@ -56,6 +63,9 @@ public class JavadocBrowser extends HttpServlet {
                 listVersions(response, groupId, artifactId);
                 return;
             }
+            if(version.equals("release")) {
+                version = checkLatest(groupId, artifactId);
+            }
             String path = parts[4];
 
             File file = new File(DOC_CACHE, groupId + "/" + artifactId + "/"
@@ -82,6 +92,37 @@ public class JavadocBrowser extends HttpServlet {
             printErrorPage(response, e);
         }
 
+    }
+
+
+    Pattern pattern = Pattern.compile("(?:<release.*?>)(.*?)(?:<\\/release>)");
+
+    Cache<String, String> versionCache = Caffeine.newBuilder()
+            .maximumSize(1000)
+            .expireAfterWrite(Duration.ofMinutes(30))
+            .build();
+
+    private String checkLatest(String groupId, String artifactId) {
+        return versionCache.get(groupId + ":" + artifactId, s -> {
+            for (String repo : repos) {
+                String repopath = "/" + groupId.replace(".", "/") + "/"
+                        + artifactId + "/" + "maven-metadata.xml";
+                try {
+                    URL url = new URL(repo + repopath);
+                    InputStream openStream = url.openStream();
+                    String xml = IOUtils.toString(openStream, Charset.defaultCharset());
+                    openStream.close();
+                    Matcher matcher = pattern.matcher(xml);
+                    if(matcher.find()) {
+                        return matcher.group(1);
+                    }
+                    break;
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            return "LATEST";
+        });
     }
 
     private void listGroups(HttpServletResponse response) throws IOException {
